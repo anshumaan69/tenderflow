@@ -1,35 +1,22 @@
 import { NextResponse } from "next/server";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
-import { 
-  TextractClient, 
-  DetectDocumentTextCommand
-} from "@aws-sdk/client-textract";
-import { writeFile, unlink, readdir } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { exec } from "node:child_process";
-import { promisify } from "node:util";
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { unlink } from "node:fs/promises";
 
 // Data & Logic Imports
 import { PRODUCTS } from "@/lib/data/products";
 import { PRODUCT_PRICING, SERVICE_PRICING, SERVICE_KEYWORDS } from "@/lib/data/pricing";
-import { getEmbedding, cosineSimilarity } from "@/lib/embeddings";
-
-const execAsync = promisify(exec);
 
 // Initialize AWS Clients
 const region = process.env.AWS_REGION || "us-east-1";
-
 const bedrock = new BedrockRuntimeClient({ region });
-const textract = new TextractClient({ region });
 
 export async function POST(req: Request) {
   const processId = randomUUID();
   const tempDir = tmpdir();
   const inputPdfPath = join(tempDir, `input-${processId}.pdf`);
-  const outputPattern = join(tempDir, `output-${processId}-%d.png`);
 
   try {
     const formData = await req.formData();
@@ -39,40 +26,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    // --- STEP 1: FAST TEXTRACT (INPUT PROCESSING) ---
+    // --- STEP 1: TEXT EXTRACTION (pdf-parse) ---
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    await writeFile(inputPdfPath, buffer);
+    
+    // Use pdf-parse to extract text directly from the PDF buffer
+    // This removes the need for 'convert' (ImageMagick) which fails on Vercel
+    const pdf = require("pdf-parse"); 
+    const pdfData = await pdf(buffer);
+    const fullText = pdfData.text;
 
-    console.log(`[${processId}] Converting PDF to images...`);
-    await execAsync(`convert -density 150 "${inputPdfPath}" -quality 90 -scene 1 "${outputPattern}"`);
-
-    const files = await readdir(tempDir);
-    const pageFiles = files
-        .filter(f => f.startsWith(`output-${processId}-`) && f.endsWith(".png"))
-        .sort((a, b) => {
-            const numA = parseInt(a.match(/-(\d+)\.png$/)?.[1] || "0");
-            const numB = parseInt(b.match(/-(\d+)\.png$/)?.[1] || "0");
-            return numA - numB;
-        });
-
-    if (pageFiles.length === 0) throw new Error("PDF conversion failed.");
-    console.log(`[${processId}] Processing ${pageFiles.length} pages...`);
-
-    const pagePromises = pageFiles.map(async (filename) => {
-        const filePath = join(tempDir, filename);
-        const imageBuffer = await readFile(filePath);
-        const command = new DetectDocumentTextCommand({ Document: { Bytes: imageBuffer } });
-        const response = await textract.send(command);
-        await unlink(filePath).catch(() => {});
-        return response.Blocks?.filter(b => b.BlockType === "LINE").map(b => b.Text).join("\n") || "";
-    });
-
-    const pageTexts = await Promise.all(pagePromises);
-    const fullText = pageTexts.join("\n\n");
-    await unlink(inputPdfPath).catch(() => {});
-
-    console.log(`[${processId}] Text Extracted (${fullText.length} chars).`);
+    console.log(`[${processId}] Text Extracted (${fullText.length} chars) via pdf-parse.`);
 
     // --- STEP 2: TECHNICAL AGENT (EXTRACTION) ---
     // Extract raw requirements first
