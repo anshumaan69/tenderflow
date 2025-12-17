@@ -50,7 +50,7 @@ export default function ProcessingTerminal() {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
+      animate={{ opacity: 1, scale: 1}}
       className="w-full h-full overflow-hidden rounded-lg border border-border bg-zinc-950 font-mono text-sm shadow-inner"
     >
       <div className="flex items-center gap-2 border-b border-zinc-800 bg-zinc-900 px-4 py-2">

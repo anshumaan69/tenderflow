@@ -25,8 +25,12 @@ export default function QuoteProcessor() {
     setState("processing");
 
     try {
+      const formData = new FormData();
+      formData.append("file", file);
+
       const response = await fetch("/api/process", {
         method: "POST",
+        body: formData,
       });
       const data = await response.json();
       setItems(data.items);
