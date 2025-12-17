@@ -1,0 +1,34 @@
+REQUEST FOR QUOTATION: ELECTRICAL SUPPLIES
+Ref: AP-2025-ELECT-001
+Date: Dec 18, 2025
+
+Scope of Supply:
+We require the following items for our new manufacturing plant expansion.
+Technical compliance is mandatory.
+
+Item 1:
+Description: High Voltage Power Cable
+Spec: 11kV, 3-Core, Aluminum Conductor, XLPE Insulated, Armored.
+Quantity: 500 Meters
+
+Item 2:
+Description: Low Voltage Distribution Cable
+Spec: 1.1kV, 4-Core, Copper Conductor, XLPE Insulated.
+Quantity: 1200 Meters
+
+Item 3:
+Description: Circuit Breakers
+Spec: MCCB, 100A Rating, 3-Pole, Breaking Capacity 25kA.
+Quantity: 50 Nos
+
+Item 4:
+Description: House Wiring (Fire Retardant)
+Spec: 1.5 sqmm Copper Wire, FR PVC.
+Quantity: 2000 Meters
+
+Testing & Inspection Requirements:
+1. All HV cables must undergo High Voltage Test (HV Test) at factory.
+2. Third-party inspection (Factory Acceptance Test) required before dispatch.
+3. Standard 18-month warranty required.
+
+Please submit best commercial offer by 25th Dec.

@@ -1,0 +1,140 @@
+Challenge IV: FMCG [Asian paints]
+Executive Summary
+This challenge focuses on optimizing the B2B RFP response process for a leading industrial 
+manufacturer using Agentic AI. Participants must design a multi-agent system that automates RFP 
+identification, product matching, and pricing estimation to improve response speed and accuracy.
+‘About the Business
+A large Industrial products manufacturing firm (client) with a business across Fast moving electrical 
+goods (FMEG), Wires and Cables has seen considerable growth over the last 5 years. The growth has 
+been driven by large Business to business (B2B) Request for proposals (RFPs) and tenders from 
+infrastructure build out in India. The client wishes to further develop the B2B business by increasing 
+the number of RFP qualifications and responses. 
+Context on B2B RFPs
+Typically, large projects – e.g., government projects are launched by government departments or 
+public sector undertakings (PSUs). These projects are executed by lumpsum turnkey (LSTK) project 
+executors (PSUs or private enterprises). The LSTK project executors in raise RFPs for material 
+supplies – e.g., wires, cables, other materials as RFPs to be supplied by Original Equipment 
+Manufacturers (OEM) vendors. 
+A typical RFP consists of technical scope of supply (quantity of wires / cables), technical specification 
+(for wires and cables), test requirements and acceptance tests to be conducted before accepting the 
+delivery of wires and cables (refer sample RFP). OEM vendors bid for these tenders and lowest 
+priced tender is awarded the contract. The client is one of the large wires and cables OEM in India, 
+who regularly bid for such RFPs. 
+B2B RFP response process
+• Once the RFP is received to the client Sales Team, they qualify the RFP based on the date for 
+submission, past experience and product coverage. 
+• Qualified RFPs are passed on to the Product Technical Team to match the client product 
+SKUs to RFP product requirements. Refer sample of product specs. 
+• The Product Technical Team finalizes the client product SKUs, which are the closest 
+matches. 
+• This is then worked on by the Pricing Team, which estimates the price of the products and 
+additional costs required to meet the testing and acceptance test requirements at project 
+site. 
+• The Sales Team consolidates the inputs from Product Technical Team and Pricing Team to 
+submit the RFP response to the LSTK project executor. 
+• In case the client product SKUs has a low match for RFP product requirement, an internal 
+request for new made to order SKUs is prepared to meet the RFP product requirements. 
+Bottlenecks in the B2B RFP Response
+• The entire RFP response process is manually driven – with manual handoff between each 
+team.
+• In many cases the Sales Team may not be aware of the release of RFPs by LSTK project 
+executors on time. These are typically released on LSTK project executor’s website, received 
+on emails. Delay in initiating response to RFPs would certainly mean lower chances of 
+winning. 
+• The technical matching of RFP requirements to Product SKUs is manually done. This requires 
+knowledge of technical standards, specifications, and product knowledge. 
+• While standards, specifications and product details are well documented, the technical team 
+is often concurrently managing multiple RFPs and takes a lot of lead time to turn around
+their response. The Pricing Team can work on the price only after technical team’s 
+responses. 
+The Problem Statement
+Business Problem:
+The goal is to scale RFP responses using AI.
+The client wants to further drive of the B2B business channel. Given that their past growth has been 
+on B2B RFPs, they have now significant credentials and see their team having the “right to win” in 
+this segment. Given the rapid growth in the past few years, they are now facing bottlenecks in RFP 
+response process which are impacting their ability to respond to RFPs on time.
+Upon analyzing the past wins and losses on large RFPs, the client has identified the following. 
+- 90% of the wins correlated to RFPs which were received and actioned on time.
+- 60% of the wins correlated to RFPs where adequate time was provided for the technical 
+team to match product requirements with RFPs. 
+- Technical product SKU matching RFP requirements takes the most time in the process.
+- Delays in RFP submission significantly reduced the chances of winning.
+The client wants to improve the number of RFPs responses (per year) and the timely response by 
+using an Agentic AI approach. The solution must simulate the B2B RFP response process through a 
+Sales agent and Technical Agent which automates the process of identifying an RFP on time and 
+maps the right SKUs with the RFP. 
+Goal:
+Teams must design an Agentic AI solution where the Sales Agent:
+1. Scans a set of predefined URLs to identify the RFPs which are due to be submitted in the 
+next 3 months.
+2. Summarizes the requirement of the RFP in terms of products to be shared with Technical 
+Agent
+3. Summarizes the testing and acceptance requirement to be shared with the Pricing Agent 
+Key Deliverable:
+A) showcasing the end-to-end journey from RFP identification to collating the RFP response from 
+technical and pricing agents.
+Agentic AI Roles
+1. Main Agent (Main Orchestrator)
+• Prepares a summary of an identified RFP to be shared with Technical and Pricing Agent
+• Summary shared with technical and pricing agent needs to be contextual to their role.
+• Receives the response from the Technical and pricing agent to consolidate the overall 
+response of the RFP
+
+• The overall response of the RFP needs to contain the OEM product SKUs suggested, their 
+price and the costs for tests required in the RFP.
+• Starts and ends the conversation.
+2. Worker Agents:
+o Sales Agent:
+§ Identifies the RFPs which are due for submission in the next 3 months. 
+§ Scans identified web URLs to summarize RFPs with their due dates. 
+§ Identifies 1 RFP to be selected for response and sends this to the Main 
+agent.
+o Technical Agent:
+§ Receives the summary of RFP and RFP document from the main agent. 
+§ Summarizes the products in Scope of supply. 
+§ Recommends top 3 OEM products which match each of the product in 
+Scope of supply, show a “Spec match” metric (in %) for each of OEM product 
+recommendations.
+§ Recommendation of top 3 OEM products come from a repository of product 
+datasheets. Refer sample of product specs.
+§ The spec match metric should reflect the closeness with which the 
+recommended OEM product matches the RFP product specs considering 
+that all the required specs have an equal weightage. 
+§ Prepares a comparison table of RFP spec parameters requirements, spec 
+values for Top 1,2 and 3 OEM product recommendations for each RFP 
+product. 
+§ Select the top OEM product which closely matches the RFP products for all 
+items in scope of supply based on the spec match metric.
+§ Final table of products in Scope of Supply and recommended OEM product 
+SKUs
+§ Send this table to main agent and the pricing agent.
+o Pricing Agent:
+§ Receives the summary of the tests and acceptance tests to be done for the 
+product from the main agent.
+§ Receives the product recommendation table from the technical agent.
+§ Pricing agent assigns a unit price for each product based out of a dummy 
+pricing table and price for each test based out of a dummy services price 
+table.
+§ Consolidates the total material price and services price for every product in 
+scope of supply.
+§ Send the consolidated price table to Main agent
+
+Data & System Assumptions
+• RFP Data – Teams can download the RFPs from internet. 2 sample RFPs have been provided 
+as a reference. 
+• OEM product data sheets – Teams can download the cables datasheets for any of the 
+leading cable manufacturer websites – a few sample URLs have been provided as a 
+reference. 
+• Product and Tests pricing data:
+Teams must create synthetic data for price of products, type of tests and the price of each of 
+the tests.
+• Scanning RFP from websites – The teams can stand up sample web pages which show the 
+RFPs for the sales agent to scan and summarize.
+Submission Format: 5 slider PPT
+Tips for Participants
+• Provide outputs in structured summary (bullets rather than long paragraphs) and structured 
+tables.
+• Focus on the logic for matching RFP requirements with OEM product recommendations.
+• Detail out the logic for scoring Spec match metric for RFP products and OEM products.
+• Emphasize more on the process of matching requirements rather than accuracy of matching.
