@@ -20,13 +20,15 @@ export const SERVICE_PRICING: Record<string, number> = {
   "TEST-TYPE": 50000,    // Type Test (Expensive)
   "INSP-FACTORY": 10000, // Factory Acceptance Test
   "INSP-SITE": 20000,    // Site Inspection
-  "LOGISTICS": 25000     // Standard Shipping
+  "LOGISTICS": 25000,    // Standard Shipping
+  "COMMISSIONING": 45000 // On-site commissioning
 };
 
 // Start keyword matching for services
 export const SERVICE_KEYWORDS: Record<string, string[]> = {
   "TEST-HV": ["high voltage test", "hv test", "insulation resistance"],
-  "TEST-TYPE": ["type test", "short circuit test", "impulse test"],
-  "INSP-FACTORY": ["factory acceptance", "fat", "pre-dispatch inspection"],
-  "INSP-SITE": ["site acceptance", "sat", "commissioning support"]
+  "TEST-TYPE": ["type test", "short circuit test", "impulse test", "temperature rise"],
+  "INSP-FACTORY": ["factory acceptance", "fat", "pre-dispatch inspection", "witness test"],
+  "INSP-SITE": ["site acceptance", "sat", "commissioning support"],
+  "COMMISSIONING": ["installation and commissioning", "start-up support"]
 };

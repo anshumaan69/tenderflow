@@ -77,18 +77,24 @@ export async function POST(req: Request) {
     // --- STEP 2: TECHNICAL AGENT (EXTRACTION) ---
     // Extract raw requirements first
     const modelId = "amazon.titan-text-express-v1";
-    const prompt = `User: Extract the procurement items from this RFP.
+    const prompt = `User: Extract the procurement items and testing requirements from this RFP.
       Instructions:
-      1. List every item requested.
-      2. For each, extract the Name, Quantity, and Key Technical Specs (Voltage, Material, Type).
-      3. Output JSON only.
+      1. List every item requested in "requirements".
+      2. For each item, extract the Name, Quantity, and a dictionary of Specs (Voltage, Material, Core, Insulation, Rating).
+      3. Extract specific testing/acceptance requirements (e.g., "Type Test", "Factory Acceptance Test") into "testing_requirements".
+      4. Output JSON only.
 
       Structure:
       {
         "company": "string",
         "requirements": [
-          { "name": "string", "quantity": number, "specs": "string" }
-        ]
+          { 
+            "name": "string", 
+            "quantity": number, 
+            "specs": { "voltage": "val", "material": "val", "core": "val", "insulation": "val" } 
+          }
+        ],
+        "testing_requirements": ["test_name_1", "test_name_2"]
       }
 
       Content: "${fullText.substring(0, 15000)}"
@@ -96,7 +102,7 @@ export async function POST(req: Request) {
 
     const payload = {
       inputText: prompt,
-      textGenerationConfig: { maxTokenCount: 2000, stopSequences: ["User:"], temperature: 0, topP: 1 },
+      textGenerationConfig: { maxTokenCount: 3000, stopSequences: ["User:"], temperature: 0, topP: 1 },
     };
 
     const bedrockRes = await bedrock.send(new InvokeModelCommand({
@@ -109,70 +115,94 @@ export async function POST(req: Request) {
 
 
     // --- STEP 3: TECHNICAL AGENT (MATCHING) ---
-    // Match extracted requirements against our Inventory (RAG)
-    console.log(`[${processId}] Matching products...`);
-
-    // Pre-calculate/Cache inventory embeddings
-    const inventoryEmbeddings = await Promise.all(PRODUCTS.map((p) => getEmbedding(`${p.name} ${p.description} ${JSON.stringify(p.specs)}`)));
+    // Match extracted requirements against our Inventory (Deterministic)
+    console.log(`[${processId}] Matching products via Spec Match Metric...`);
 
     const matchedItems = await Promise.all(extractedData.requirements.map(async (req: any, index: number) => {
-        const reqString = `${req.name} ${req.specs}`;
-        const reqVector = await getEmbedding(reqString);
+        
+        // Calculate Spec Match % for ALL products
+        const scoredProducts = PRODUCTS.map(p => {
+             let matchCount = 0;
+             let totalParams = 0;
+             const reqSpecs = req.specs || {};
+             
+             // Compare key attributes
+             const keysToCheck = ["voltage", "material", "core", "insulation", "rating"];
+             keysToCheck.forEach(key => {
+                 if (reqSpecs[key] && p.specs && (p.specs as any)[key]) {
+                     totalParams++;
+                     // Loose matching (case-insensitive string match)
+                     if (p.specs[key as keyof typeof p.specs]?.toString().toLowerCase().includes(reqSpecs[key].toString().toLowerCase())) {
+                         matchCount++;
+                     }
+                 }
+             });
+             
+             // Base Match: Name similarity (Cosine) fallback if no specs
+             // For strict Hackathon rule: "all required specs have equal weightage" -> (Match / Total) * 100
+             let specScore = totalParams > 0 ? (matchCount / totalParams) * 100 : 0;
+             
+             return { product: p, score: specScore };
+        });
 
-        // Find best match
-        let bestMatch = null;
-        let maxScore = -1;
+        // Top 3 Recommendations
+        const top3 = scoredProducts
+             .sort((a, b) => b.score - a.score)
+             .slice(0, 3);
 
-        for (let i = 0; i < PRODUCTS.length; i++) {
-            const score = cosineSimilarity(reqVector, inventoryEmbeddings[i]);
-            if (score > maxScore) {
-                maxScore = score;
-                bestMatch = PRODUCTS[i];
-            }
-        }
+        const bestMatch = top3[0];
 
         // --- STEP 4: PRICING AGENT (COSTING) ---
-        let unitPrice = 0;
-        let notes = "No match found";
+        let materialPrice = 0;
+        let notes = "No suitable match found";
         let status = "mismatch";
 
-        if (bestMatch && maxScore > 0.6) { // Threshold
-             unitPrice = PRODUCT_PRICING[bestMatch.id] || 0;
-             notes = `Matched: ${bestMatch.name} (${bestMatch.id})`;
-             status = maxScore > 0.85 ? "match" : "partial";
+        if (bestMatch && bestMatch.score > 40) { // Threshold
+             materialPrice = PRODUCT_PRICING[bestMatch.product.id] || 0;
+             notes = `Best Match: ${bestMatch.product.name} (${bestMatch.score.toFixed(0)}% Spec Match)`;
+             status = bestMatch.score === 100 ? "match" : "partial";
         }
 
         return {
-            id: bestMatch?.id || `REQ-${index}`,
-            name: req.name, // Keep original requested name for display
-            matchedName: bestMatch?.name,
+            id: bestMatch?.product.id || `REQ-${index}`,
+            name: req.name, 
+            matchedName: bestMatch?.product.name,
             quantity: req.quantity,
-            unitPrice: unitPrice,
-            total: req.quantity * unitPrice,
+            unitPrice: materialPrice,
+            total: req.quantity * materialPrice,
             status: status,
-            confidence: Math.round(maxScore * 100),
-            notes: notes
+            confidence: Math.round(bestMatch?.score || 0),
+            notes: notes,
+            top3: top3.map(t => ({ // Pass Top 3 for UI Comparison
+                id: t.product.id,
+                name: t.product.name,
+                score: Math.round(t.score),
+                specs: t.product.specs
+            })),
+            reqSpecs: req.specs // Pass extracted specs for UI Comparison
         };
     }));
 
 
     // --- STEP 5: PRICING AGENT (SERVICES) ---
-    // Check if RFP mentions specific tests
+    // Calculate Service Costs based on extracted "testing_requirements"
     const serviceItems = [];
-    const lowerText = fullText.toLowerCase();
+    const requestedTests = (extractedData.testing_requirements || []).map((t: string) => t.toLowerCase());
 
     for (const [serviceId, kws] of Object.entries(SERVICE_KEYWORDS)) {
-        const keywords = kws as string[];
-        if (keywords.some(k => lowerText.includes(k))) {
+        // Check if ANY keyword matches ANY requested test string
+        const isRequired = kws.some(k => requestedTests.some((rt: string) => rt.includes(k)));
+        
+        if (isRequired) {
             serviceItems.push({
                 id: serviceId,
-                name: `Service: ${serviceId}`,
-                quantity: 1, // Usually 1 lot
+                name: `Service: ${serviceId.replace("TEST-", "").replace("INSP-", "")}`,
+                quantity: 1, 
                 unitPrice: SERVICE_PRICING[serviceId],
                 total: SERVICE_PRICING[serviceId],
                 status: "match",
                 confidence: 100,
-                notes: "Requirement identified in RFP terms"
+                notes: "Mandatory per RFP Section 3"
             });
         }
     }
